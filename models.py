@@ -135,3 +135,23 @@ class StoreConfig(db.Model):
             'store_address': self.store_address,
             'default_low_stock_threshold': self.default_low_stock_threshold
         }
+
+class StockHistory(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    product_id = db.Column(db.Integer, db.ForeignKey('product.id'), nullable=False)
+    change_amount = db.Column(db.Integer, nullable=False)
+    change_type = db.Column(db.String(50), nullable=False) # restock, sale, correction, adjustment
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    note = db.Column(db.String(255))
+    product = db.relationship('Product')
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'product_id': self.product_id,
+            'product_name': self.product.name if self.product else 'Unknown',
+            'change_amount': self.change_amount,
+            'change_type': self.change_type,
+            'timestamp': self.timestamp.isoformat(),
+            'note': self.note
+        }

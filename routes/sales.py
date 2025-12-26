@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from models import db, Transaction, TransactionItem, Product, Customer, DebtRecord
+from models import db, Transaction, TransactionItem, Product, Customer, DebtRecord, StockHistory
 from datetime import datetime
 
 sales_bp = Blueprint('sales', __name__)
@@ -32,6 +32,15 @@ def create_sale():
         
         # Deduct stock
         product.stock_quantity -= item['quantity']
+        
+        # Log Stock History
+        history = StockHistory(
+            product_id=product.id,
+            change_amount=-item['quantity'],
+            change_type='sale',
+            note=f'Sold in Transaction'
+        )
+        db.session.add(history)
         
         # Create transaction item
         t_item = TransactionItem(

@@ -4,6 +4,7 @@ from routes.analytics import analytics_bp
 from routes.sales import sales_bp
 from routes.products import products_bp
 from routes.settings import settings_bp
+from routes.history import history_bp
 from flask import Flask
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
@@ -38,6 +39,7 @@ app.register_blueprint(analytics_bp, url_prefix='/api/analytics')
 app.register_blueprint(auth_bp, url_prefix='/api/auth')
 app.register_blueprint(customers_bp, url_prefix='/api/customers')
 app.register_blueprint(settings_bp, url_prefix='/api/settings')
+app.register_blueprint(history_bp, url_prefix='/api/history')
 
 # Create tables (For dev purposes, usually use Flask-Migrate in prod)
 with app.app_context():

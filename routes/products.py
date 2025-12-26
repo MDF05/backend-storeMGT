@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from models import db, Product, Category
+from models import db, Product, Category, StockHistory
 
 products_bp = Blueprint('products', __name__)
 
@@ -21,6 +21,18 @@ def add_product():
             category_id=data['category_id']
         )
         db.session.add(new_product)
+        db.session.flush() # Get ID
+        
+        # Initial Stock History
+        if new_product.stock_quantity > 0:
+            history = StockHistory(
+                product_id=new_product.id,
+                change_amount=new_product.stock_quantity,
+                change_type='initial',
+                note='Initial Stock'
+            )
+            db.session.add(history)
+
         db.session.commit()
         return jsonify(new_product.to_dict()), 201
     except Exception as e:
@@ -41,7 +53,31 @@ def update_product(id):
     if 'name' in data: product.name = data['name']
     if 'sku' in data: product.sku = data['sku']
     if 'price' in data: product.price = data['price']
-    if 'stock_quantity' in data: product.stock_quantity = data['stock_quantity']
+    
+    # Handle Stock Change History
+    if 'stock_quantity' in data:
+        old_stock = product.stock_quantity
+        new_stock = int(data['stock_quantity'])
+        diff = new_stock - old_stock
+        
+        if diff != 0:
+            change_type = data.get('change_type', 'manual_update')
+            # If no explicit type, guess based on context or just use manual
+            if change_type == 'manual_update' and diff > 0:
+                change_type = 'restock' # Optimistic guess
+            
+            note = data.get('note', 'Manual update via Inventory')
+            
+            history = StockHistory(
+                product_id=product.id,
+                change_amount=diff,
+                change_type=change_type,
+                note=note
+            )
+            db.session.add(history)
+            
+        product.stock_quantity = new_stock
+
     if 'low_stock_threshold' in data: product.low_stock_threshold = int(data['low_stock_threshold'])
     if 'category_id' in data: product.category_id = data['category_id']
     
