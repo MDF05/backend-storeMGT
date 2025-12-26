@@ -26,6 +26,8 @@ def update_settings():
         config.store_address = data['store_address']
     if 'default_low_stock_threshold' in data:
         config.default_low_stock_threshold = int(data['default_low_stock_threshold'])
+    if 'pic_name' in data:
+        config.pic_name = data['pic_name']
         
     db.session.commit()
     return jsonify(config.to_dict())

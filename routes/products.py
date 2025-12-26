@@ -8,6 +8,44 @@ def get_products():
     products = Product.query.all()
     return jsonify([p.to_dict() for p in products])
 
+@products_bp.route('/bulk', methods=['POST'])
+def add_products_bulk():
+    data = request.json
+    if not isinstance(data, list):
+        return jsonify({'error': 'Input must be a list of products'}), 400
+    
+    added_products = []
+    try:
+        for item in data:
+            new_product = Product(
+                name=item['name'],
+                sku=item['sku'],
+                price=item['price'],
+                stock_quantity=item['stock_quantity'],
+                low_stock_threshold=int(item.get('low_stock_threshold', 10)),
+                category_id=item['category_id']
+            )
+            db.session.add(new_product)
+            db.session.flush() # Get ID for history
+            
+            # Initial Stock History
+            if new_product.stock_quantity > 0:
+                history = StockHistory(
+                    product_id=new_product.id,
+                    change_amount=new_product.stock_quantity,
+                    change_type='initial',
+                    note='Bulk Import'
+                )
+                db.session.add(history)
+            
+            added_products.append(new_product)
+
+        db.session.commit()
+        return jsonify([p.to_dict() for p in added_products]), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 400
+
 @products_bp.route('/', methods=['POST'])
 def add_product():
     data = request.json

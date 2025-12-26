@@ -128,12 +128,14 @@ class StoreConfig(db.Model):
     store_name = db.Column(db.String(100), default="My Store")
     store_address = db.Column(db.String(255), default="Jakarta, Indonesia")
     default_low_stock_threshold = db.Column(db.Integer, default=10)
+    pic_name = db.Column(db.String(100), default="Manager")
 
     def to_dict(self):
         return {
             'store_name': self.store_name,
             'store_address': self.store_address,
-            'default_low_stock_threshold': self.default_low_stock_threshold
+            'default_low_stock_threshold': self.default_low_stock_threshold,
+            'pic_name': self.pic_name
         }
 
 class StockHistory(db.Model):
