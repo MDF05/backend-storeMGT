@@ -17,6 +17,7 @@ def add_product():
             sku=data['sku'],
             price=data['price'],
             stock_quantity=data['stock_quantity'],
+            low_stock_threshold=int(data.get('low_stock_threshold', 10)),
             category_id=data['category_id']
         )
         db.session.add(new_product)
@@ -31,6 +32,21 @@ def delete_product(id):
     db.session.delete(product)
     db.session.commit()
     return jsonify({'message': 'Product deleted'})
+
+@products_bp.route('/<int:id>', methods=['PUT'])
+def update_product(id):
+    product = Product.query.get_or_404(id)
+    data = request.json
+    
+    if 'name' in data: product.name = data['name']
+    if 'sku' in data: product.sku = data['sku']
+    if 'price' in data: product.price = data['price']
+    if 'stock_quantity' in data: product.stock_quantity = data['stock_quantity']
+    if 'low_stock_threshold' in data: product.low_stock_threshold = int(data['low_stock_threshold'])
+    if 'category_id' in data: product.category_id = data['category_id']
+    
+    db.session.commit()
+    return jsonify(product.to_dict())
 
 @products_bp.route('/categories', methods=['GET'])
 def get_categories():

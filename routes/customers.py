@@ -61,3 +61,32 @@ def pay_debt(id):
     db.session.commit()
     
     return jsonify({'message': 'Payment successful', 'new_debt': customer.total_debt})
+
+@customers_bp.route('/<int:id>/adjust_debt', methods=['POST'])
+def adjust_debt(id):
+    customer = Customer.query.get_or_404(id)
+    data = request.json
+    try:
+        new_debt = float(data.get('new_debt', 0))
+    except (ValueError, TypeError):
+        return jsonify({'error': 'Invalid debt amount'}), 400
+        
+    current_debt = customer.total_debt
+    diff = new_debt - current_debt
+    
+    if diff == 0:
+         return jsonify({'message': 'No change in debt', 'new_debt': customer.total_debt})
+
+    customer.total_debt = new_debt
+    
+    record = DebtRecord(
+        customer_id=id,
+        amount=diff,
+        type='adjustment',
+        description=data.get('description', 'Manual Debt Adjustment')
+    )
+    
+    db.session.add(record)
+    db.session.commit()
+    
+    return jsonify({'message': 'Debt adjusted successfully', 'new_debt': customer.total_debt})
