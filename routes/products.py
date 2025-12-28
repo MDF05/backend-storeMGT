@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from models import db, Product, Category, StockHistory
+from models import db, Product, Category, StockHistory, TransactionItem
 
 products_bp = Blueprint('products', __name__)
 
@@ -76,9 +76,20 @@ def add_product():
     except Exception as e:
         return jsonify({'error': str(e)}), 400
 
+
+
 @products_bp.route('/<int:id>', methods=['DELETE'])
 def delete_product(id):
     product = Product.query.get_or_404(id)
+    
+    # Check if product has sales history
+    sales_count = TransactionItem.query.filter_by(product_id=id).count()
+    if sales_count > 0:
+        return jsonify({'error': 'Cannot delete product that has sales history. Archive it instead.'}), 400
+
+    # Delete related stock history first (CASCADE behavior simulation)
+    StockHistory.query.filter_by(product_id=id).delete()
+    
     db.session.delete(product)
     db.session.commit()
     return jsonify({'message': 'Product deleted'})
