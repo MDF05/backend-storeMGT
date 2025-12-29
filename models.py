@@ -38,12 +38,13 @@ class Customer(db.Model):
 
 class DebtRecord(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    customer_id = db.Column(db.Integer, db.ForeignKey('customer.id'), nullable=False)
+    customer_id = db.Column( db.Integer,db.ForeignKey('customer.id', ondelete='CASCADE'), nullable=False)
     transaction_id = db.Column(db.Integer, db.ForeignKey('transaction.id'), nullable=True)
     amount = db.Column(db.Float, nullable=False) # Change in debt (positive = added debt, negative = paid)
     type = db.Column(db.String(20), nullable=False) # 'credit' (add debt), 'payment' (pay debt)
     description = db.Column(db.String(255))
     date = db.Column(db.DateTime, default=datetime.utcnow)
+
 
     def to_dict(self):
         return {
@@ -65,15 +66,17 @@ class Category(db.Model):
             'id': self.id,
             'name': self.name
         }
-
 class Product(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(200), nullable=False)
     sku = db.Column(db.String(50), nullable=False, unique=True)
     price = db.Column(db.Float, nullable=False)
     stock_quantity = db.Column(db.Integer, default=0)
-    low_stock_threshold = db.Column(db.Integer, default=10) # Custom warning limit
+    low_stock_threshold = db.Column(db.Integer, default=10)
     category_id = db.Column(db.Integer, db.ForeignKey('category.id'), nullable=False)
+    stock_histories = db.relationship('StockHistory', backref='product', cascade='all, delete-orphan', passive_deletes=True)
+    # relationship to transaction items so deleting product cascades to items at DB level
+    transaction_items = db.relationship('TransactionItem', backref='product', lazy=True, cascade='all, delete-orphan', passive_deletes=True)
 
     def to_dict(self):
         return {
@@ -94,7 +97,8 @@ class Transaction(db.Model):
     paid_amount = db.Column(db.Float, default=0.0)
     payment_method = db.Column(db.String(50), default='cash') # cash, debt
     customer_id = db.Column(db.Integer, db.ForeignKey('customer.id'), nullable=True)
-    items = db.relationship('TransactionItem', backref='transaction', lazy=True)
+    # ensure deletion of a Transaction cascades to its items
+    items = db.relationship('TransactionItem', backref='transaction', lazy=True, cascade='all, delete-orphan', passive_deletes=True)
 
     def to_dict(self):
         return {
@@ -109,11 +113,14 @@ class Transaction(db.Model):
 
 class TransactionItem(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    transaction_id = db.Column(db.Integer, db.ForeignKey('transaction.id'), nullable=False)
-    product_id = db.Column(db.Integer, db.ForeignKey('product.id'), nullable=False)
-    product = db.relationship('Product') # Add relationship
+    # cascade delete when parent product is removed
+    product_id = db.Column(db.Integer, db.ForeignKey('product.id', ondelete='CASCADE'), nullable=False)
+    # cascade delete when parent transaction is removed
+    transaction_id = db.Column(db.Integer, db.ForeignKey('transaction.id', ondelete='CASCADE'), nullable=False)
+    # relationship to Product is available via backref from Product.transaction_items
     quantity = db.Column(db.Integer, nullable=False)
     price_at_sale = db.Column(db.Float, nullable=False)
+    
 
     def to_dict(self):
         return {
@@ -140,12 +147,11 @@ class StoreConfig(db.Model):
 
 class StockHistory(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    product_id = db.Column(db.Integer, db.ForeignKey('product.id'), nullable=False)
+    product_id = db.Column(db.Integer,db.ForeignKey('product.id', ondelete='CASCADE'),nullable=False)
     change_amount = db.Column(db.Integer, nullable=False)
-    change_type = db.Column(db.String(50), nullable=False) # restock, sale, correction, adjustment
+    change_type = db.Column(db.String(50), nullable=False)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
     note = db.Column(db.String(255))
-    product = db.relationship('Product')
 
     def to_dict(self):
         return {

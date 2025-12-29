@@ -11,6 +11,7 @@ from flask_jwt_extended import JWTManager
 from models import db
 from dotenv import load_dotenv
 import os
+from flask_migrate import Migrate
 
 # Load Environment Variables
 load_dotenv()
@@ -29,6 +30,8 @@ app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', 'dev-secret')
 
 # Initialize Plugins
 db.init_app(app)
+# Initialize Flask-Migrate
+migrate = Migrate(app, db)
 jwt = JWTManager(app)
 
 # Import and Register Blueprints
